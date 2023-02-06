@@ -1,0 +1,56 @@
+service: mstiendamotos
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+
+functions:
+  create-instance:
+    handler: handler.createInstance
+    events:
+      - http:
+          path: instance/create
+          method: post
+
+resources:
+  Resources:
+    MyEC2Instance:
+      Type: AWS::EC2::Instance
+      Properties:
+        InstanceType: t2.micro
+        ImageId: ami-0778521d914d23bc1
+        KeyName: tiendamotos
+        BlockDeviceMappings:
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: 20
+              VolumeType: gp2
+        SecurityGroups:
+          - !Ref MySecurityGroup
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            sudo apt update -y
+            sudo apt install -y docker.io docker-compose git
+            sudo mkdir -p /home/ubuntu/mstienda_motos
+            cd /home/ubuntu/mstienda_motos
+            git clone https://github.com/MYBV/archivos_prueba
+            sudo usermod -aG docker ubuntu
+            sudo service docker restart
+    MySecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: Allow SSH and HTTP access
+        SecurityGroupIngress:
+          - IpProtocol: tcp
+            FromPort: 22
+            ToPort: 22
+            CidrIp: 0.0.0.0/0
+          - IpProtocol: tcp
+            FromPort: 80
+            ToPort: 80
+            CidrIp: 0.0.0.0/0
+          - IpProtocol: tcp
+            FromPort: 443
+            ToPort: 443
+            CidrIp: 0.0.0.0/0
